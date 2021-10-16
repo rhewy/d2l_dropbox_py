@@ -31,7 +31,7 @@ from typing import List
 from StudentInfo import StudentInfo
 
 StudentList = List[StudentInfo]
-pathFor7z = 'C:\\apps\\7Zip\\7z.exe x'
+pathFor7z = 'C:\\apps\\zip7\\7z.exe x'
 
 def hasStudentFilePattern(fileName: str) -> bool:
     """
@@ -138,6 +138,7 @@ def unzipStudentFiles(parentDir: str, studentList: StudentList):
     """
     Unzip any student files
     """
+    zipLogFileName = 'zip.log'
     #====================================================
     # preserve the old working dir
     #====================================================
@@ -148,32 +149,39 @@ def unzipStudentFiles(parentDir: str, studentList: StudentList):
     stud = StudentInfo()
 
     for stud in studentList:
+        unZippedDirCount = 1
         fullStudentDir = p.join(parentDir, stud.studentDir())
+        zipLogFile = p.join(fullStudentDir, zipLogFileName)
         o.chdir(fullStudentDir)
-        
+        #====================================================
+        # Get each file and see if its a type of zipped file
+        # 7z, rar, zip
+        #====================================================
         for aFile in o.listdir(fullStudentDir):
+            unZippedDirName = f'unzipped_{unZippedDirCount:03d}'
+            unZippedDir = p.join(fullStudentDir, unZippedDirName)
             print(aFile)
-            if(p.isfile(aFile) and '.zip' in aFile):
-                #====================================================
-                # Unzip the dropbox file
-                #====================================================
-                with z.ZipFile(aFile, 'r') as studentZip:
-                    studentZip.extractall(fullStudentDir)
-            if(p.isfile(aFile) and ('.7z' in aFile or '.rar' in aFile)):
-                fullStudentFile = p.join(fullStudentDir, aFile)
-                #====================================================
-                # Unzip the dropbox file
-                #====================================================
-                cmd = f'{pathFor7z} \"{fullStudentFile}\" -o\"{fullStudentDir}\"'
-                print(f'Trying {cmd} ...')
-                sp.call(cmd)
-
-
+            if p.isfile(aFile):
+                fileParts = aFile.split('.')
+                fileExtension = fileParts[len(fileParts)-1]
+                if fileExtension.lower() in ['7z', 'zip', 'rar'] :
+                    fullStudentFile = p.join(fullStudentDir, aFile)
+                    #====================================================
+                    # Unzip the dropbox file
+                    #====================================================
+                    cmd = f'{pathFor7z} \"{fullStudentFile}\" -o\"{unZippedDir}\"'
+                    print(f'Trying {cmd} ...')
+                    sp.call(cmd)
+                    #====================================================
+                    # log which file went into which directory
+                    #====================================================
+                    with open(zipLogFile, 'a') as logFile:
+                        logFile.write(f'{aFile} unzipped in {unZippedDirName}\n')
+                    unZippedDirCount += 1
     #====================================================
     # change back to the old dir
     #====================================================
     o.chdir(oldDir)
-
 # =============================================
 # AD 99 - Run stuffer
 # =============================================
